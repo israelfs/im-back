@@ -35,3 +35,11 @@ export async function removeTodo(id) {
   const [result] = await pool.query("DELETE FROM todos WHERE id = ?", [id]);
   return result;
 }
+
+export async function updateTodo(id, title) {
+  const [result] = await pool.query("UPDATE todos SET title = ? WHERE id = ?", [
+    title,
+    id,
+  ]);
+  return result;
+}
