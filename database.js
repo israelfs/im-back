@@ -13,10 +13,25 @@ const pool = mysql
   })
   .promise();
 
-async function getNotes() {
+export async function getTodos() {
   const [rows] = await pool.query("SELECT * FROM todos");
   return rows;
 }
 
-const notes = await getNotes();
-console.log(notes);
+export async function getTodo(id) {
+  const [rows] = await pool.query(`SELECT * FROM todos WHERE id = ?`, [id]);
+  return rows[0];
+}
+
+export async function createTodo(title) {
+  const [result] = await pool.query(
+    "INSERT INTO todos (title, completed) VALUES (?, false)",
+    [title]
+  );
+  return getTodo(result.insertId);
+}
+
+export async function removeTodo(id) {
+  const [result] = await pool.query("DELETE FROM todos WHERE id = ?", [id]);
+  return result;
+}
