@@ -23,10 +23,10 @@ export async function getTodo(id) {
   return rows[0];
 }
 
-export async function createTodo(title) {
+export async function createTodo(title, lat, lng) {
   const [result] = await pool.query(
-    "INSERT INTO todos (title, completed) VALUES (?, false)",
-    [title]
+    "INSERT INTO todos (title, lat, lng) VALUES (?, ?, ?)",
+    [title, lat, lng]
   );
   return getTodo(result.insertId);
 }
@@ -36,10 +36,10 @@ export async function removeTodo(id) {
   return result;
 }
 
-export async function updateTodo(id, title) {
-  const [result] = await pool.query("UPDATE todos SET title = ? WHERE id = ?", [
-    title,
-    id,
-  ]);
+export async function updateTodo(id, title, lat, lng) {
+  const [result] = await pool.query(
+    "UPDATE todos SET title = ?, lat = ?, lng = ? WHERE id = ?",
+    [title, lat, lng, id]
+  );
   return result;
 }

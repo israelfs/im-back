@@ -19,15 +19,15 @@ export async function getTodoById(req, res) {
 
 export async function editTodoById(req, res) {
   const id = req.params.id;
-  const { title } = req.body;
-  await updateTodo(id, title);
+  const { title, lat, lng } = req.body;
+  await updateTodo(id, title, lat, lng);
   const todo = await getTodo(id);
   res.send(todo);
 }
 
 export async function addTodo(req, res) {
-  const { title } = req.body;
-  const todo = await createTodo(title);
+  const { title, lat, lng } = req.body;
+  const todo = await createTodo(title, lat, lng);
   res.send(todo);
 }
 

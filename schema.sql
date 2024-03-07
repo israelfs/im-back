@@ -1,10 +1,11 @@
-CREATE DATABASE todos;
-USE todos;
+CREATE DATABASE todosApp;
+USE todosApp;
 
 CREATE TABLE todos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(100),
-  completed BOOLEAN
+  lat FLOAT,
+  lng FLOAT
 );
 
-INSERT INTO todos (title, completed) VALUES ('Rua exp holz 550', false);
+INSERT INTO todos (title, lat, lng) VALUES ('Ir ao escritório', -26.300290, -48.853200);
