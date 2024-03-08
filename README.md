@@ -31,3 +31,11 @@ To run the application in development mode, follow these steps:
 ```bash
 npm run dev
 ```
+
+## Testing Todo Application Backend
+
+To test the application, run the following command:
+
+```bash
+npm run test
+```
