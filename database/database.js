@@ -15,9 +15,21 @@ const pool = mysql
 	})
 	.promise();
 
+pool.on("acquire", function (connection) {
+	connection.stream.setKeepAlive(true, 60000);
+});
+
 export async function getLocations() {
 	const [rows] = await pool.query(
-		"SELECT * FROM gtfs_location_joi._0estudo_position LIMIT 100000;"
+		`SELECT 
+				AVG(latitude) AS latitude,
+					AVG(longitude) AS longitude,
+					AVG(gsm_signal) AS gsm_signal,
+					AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+					COUNT(*) AS occurences
+			FROM gtfs_location_joi._0estudo_position
+			WHERE idposition<2893852320
+			GROUP BY FLOOR(latitude*10e3),FLOOR(longitude*10e3)`
 	);
 	return rows;
 }
@@ -27,7 +39,15 @@ export async function getMonoOperatorLocations() {
 		(vehicle) => vehicle.idvehicle
 	);
 	const [rows] = await pool.execute(
-		`SELECT * FROM gtfs_location_joi._0estudo_position WHERE idvehicle NOT IN (?) LIMIT 100000;`,
+		`SELECT 
+							AVG(latitude) AS latitude,
+							AVG(longitude) AS longitude,
+							AVG(gsm_signal) AS gsm_signal,
+							AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+							COUNT(*) AS occurences
+					FROM gtfs_location_joi._0estudo_position
+					WHERE idposition<2893852320 AND idvehicle NOT IN (?)
+					GROUP BY FLOOR(latitude*10e3),FLOOR(longitude*10e3)`,
 		[vehicleIds]
 	);
 	return rows;
@@ -35,8 +55,17 @@ export async function getMonoOperatorLocations() {
 
 export async function getBiOperatorLocations() {
 	const vehicleIds = biPlanVehicles.map((vehicle) => vehicle.idvehicle);
+	const placeholders = vehicleIds.map(() => "?").join(",");
 	const [rows] = await pool.execute(
-		`SELECT idposition, idvehicle, time_gps, time_rtc, time_transmit, latitude, longitude, gsm_signal FROM gtfs_location_joi._0estudo_position WHERE idvehicle = ? LIMIT 100000;`,
+		`SELECT 
+					AVG(latitude) AS latitude,
+					AVG(longitude) AS longitude,
+					AVG(gsm_signal) AS gsm_signal,
+					AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+					COUNT(*) AS occurences
+			FROM gtfs_location_joi._0estudo_position
+			WHERE idposition<2893852320 AND idvehicle IN (${placeholders})
+			GROUP BY FLOOR(latitude*10e3),FLOOR(longitude*10e3)`,
 		vehicleIds
 	);
 	return rows;
@@ -44,8 +73,17 @@ export async function getBiOperatorLocations() {
 
 export async function getTripleOperatorLocations() {
 	const vehicleIds = multiPlanVehicles.map((vehicle) => vehicle.idvehicle);
+	const placeholders = vehicleIds.map(() => "?").join(",");
 	const [rows] = await pool.execute(
-		`SELECT idposition, idvehicle, time_gps, time_rtc, time_transmit, latitude, longitude, gsm_signal FROM gtfs_location_joi._0estudo_position WHERE idvehicle = ? OR idvehicle = ? LIMIT 100000;`,
+		`SELECT 
+					AVG(latitude) AS latitude,
+					AVG(longitude) AS longitude,
+					AVG(gsm_signal) AS gsm_signal,
+					AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+					COUNT(*) AS occurences
+			FROM gtfs_location_joi._0estudo_position
+			WHERE idposition<2893852320 AND idvehicle IN (${placeholders})
+			GROUP BY FLOOR(latitude*10e3),FLOOR(longitude*10e3)`,
 		vehicleIds
 	);
 	return rows;
