@@ -3,25 +3,34 @@ import {
 	getMonoOperatorLocations,
 	getBiOperatorLocations,
 	getTripleOperatorLocations,
+	getCompanies,
 } from "../database/database.js";
 
 export async function getAllLocations(req, res) {
-	const locations = await getLocations();
+	const selectedCompany = req.query.selectedCompany;
+	const locations = await getLocations(selectedCompany);
 	res.send(locations);
 }
 
 export async function getAllMonoOperatorLocations(req, res) {
-	const locations = await getMonoOperatorLocations();
+	const selectedCompany = req.query.selectedCompany;
+	const locations = await getMonoOperatorLocations(selectedCompany);
 	res.send(locations);
 }
 
 export async function getAllBiOperatorLocations(req, res) {
-	const locations = await getBiOperatorLocations();
+	const selectedCompany = req.query.selectedCompany;
+	const locations = await getBiOperatorLocations(selectedCompany);
 	res.send(locations);
 }
 
 export async function getAllTripleOperatorLocations(req, res) {
-	const locations = await getTripleOperatorLocations();
-	console.log(locations);
+	const selectedCompany = req.query.selectedCompany;
+	const locations = await getTripleOperatorLocations(selectedCompany);
 	res.send(locations);
+}
+
+export async function getAllCompanies(req, res) {
+	const companies = await getCompanies();
+	res.send(companies);
 }
