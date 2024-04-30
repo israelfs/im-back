@@ -26,6 +26,16 @@ export async function getLocations(
 	endDate,
 	grouping
 ) {
+	if (
+		selectedCompanies.length === 0 ||
+		selectedOperators.length === 0 ||
+		!startDate ||
+		!endDate ||
+		!grouping
+	) {
+		return [];
+	}
+
 	const groupingOrder =
 		grouping === "low" ? "10e3" : grouping === "medium" ? "5*10e2" : "10e2";
 
