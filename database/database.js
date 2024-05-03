@@ -39,6 +39,8 @@ export async function getLocations(
 	const groupingOrder =
 		grouping === "low" ? "10e3" : grouping === "medium" ? "5*10e2" : "10e2";
 
+	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
+
 	const includedVehicleIds = [
 		...(selectedOperators.includes("Multi") ? multiPlanVehicles : []),
 		...(selectedOperators.includes("Dual") ? biPlanVehicles : []),
@@ -48,8 +50,6 @@ export async function getLocations(
 		...(!selectedOperators.includes("Multi") ? multiPlanVehicles : []),
 		...(!selectedOperators.includes("Dual") ? biPlanVehicles : []),
 	].map((vehicle) => vehicle.idvehicle);
-
-	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 
 	if (selectedOperators.includes("Único")) {
 		const placeholders = notInludedVehicleIds.map(() => "?").join(",");
@@ -98,6 +98,45 @@ export async function getLocations(
 		...selectedCompanies.flat(),
 	]);
 	console.log(rows.length);
+	return rows;
+}
+
+export async function get4gLocations(
+	selectedCompanies,
+	startDate,
+	endDate,
+	grouping
+) {
+	if (selectedCompanies.length === 0 || !startDate || !endDate || !grouping) {
+		return [];
+	}
+
+	const groupingOrder =
+		grouping === "low" ? "10e3" : grouping === "medium" ? "5*10e2" : "10e2";
+
+	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
+
+	const query = `
+		SELECT
+				AVG(latitude) AS latitude,
+				AVG(longitude) AS longitude,
+				0 AS gsm_signal,
+				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+				COUNT(*) AS occurences
+			FROM gtfs_location_joi._1estudo_position 
+			JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+			WHERE 
+				gsm_signal IS NULL
+				AND time_rtc BETWEEN ? AND ? 
+				AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
+			GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
+
+	const [rows] = await pool.query(query, [
+		startDate,
+		endDate,
+		...selectedCompanies.flat(),
+	]);
+	console.log("4G", rows.length);
 	return rows;
 }
 

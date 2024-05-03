@@ -1,4 +1,8 @@
-import { getLocations, getCompanies } from "../database/database.js";
+import {
+	getLocations,
+	getCompanies,
+	get4gLocations,
+} from "../database/database.js";
 
 export async function getAllLocations(req, res) {
 	const { companies, operators, startDate, endDate, grouping } = req.query;
@@ -10,13 +14,23 @@ export async function getAllLocations(req, res) {
 		? [operators]
 		: [];
 
-	const locations = await getLocations(
-		companiesArray,
-		operatorsArray,
-		startDate,
-		endDate,
-		grouping
-	);
+	let locations;
+	if (operatorsArray.includes("4G")) {
+		locations = await get4gLocations(
+			companiesArray,
+			startDate,
+			endDate,
+			grouping
+		);
+	} else {
+		locations = await getLocations(
+			companiesArray,
+			operatorsArray,
+			startDate,
+			endDate,
+			grouping
+		);
+	}
 	res.send(locations);
 }
 
