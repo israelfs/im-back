@@ -49,7 +49,7 @@ export async function getLocations(
 		...(!selectedOperators.includes("Dual") ? biPlanVehicles : []),
 	].map((vehicle) => vehicle.idvehicle);
 
-	const companiesPlaceholders = selectedCompanies.map(() => "?").join(",");
+	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 
 	if (selectedOperators.includes("Único")) {
 		const placeholders = notInludedVehicleIds.map(() => "?").join(",");
@@ -64,14 +64,14 @@ export async function getLocations(
 				FROM gtfs_location_joi._0estudo_position
 				JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._0estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
 				WHERE time_rtc BETWEEN ? AND ? AND gtfs_location_joi._0estudo_position.idvehicle NOT IN (${placeholders})
-					AND gtfs_location_joi.vehicle2.empresa IN (${companiesPlaceholders})
+					AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
 				GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
 
 		const [rows] = await pool.query(query, [
 			startDate,
 			endDate,
 			...notInludedVehicleIds,
-			...selectedCompanies,
+			...selectedCompanies.flat(),
 		]);
 		console.log(rows.length);
 		return rows;
@@ -88,14 +88,14 @@ export async function getLocations(
 			FROM gtfs_location_joi._0estudo_position
 			JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._0estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
 			WHERE time_rtc BETWEEN ? AND ? AND gtfs_location_joi._0estudo_position.idvehicle IN (${placeholders})
-				AND gtfs_location_joi.vehicle2.empresa IN (${companiesPlaceholders})
+				AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
 			GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
 
 	const [rows] = await pool.query(query, [
 		startDate,
 		endDate,
 		...includedVehicleIds,
-		...selectedCompanies,
+		...selectedCompanies.flat(),
 	]);
 	console.log(rows.length);
 	return rows;

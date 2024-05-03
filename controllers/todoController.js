@@ -3,11 +3,7 @@ import { getLocations, getCompanies } from "../database/database.js";
 export async function getAllLocations(req, res) {
 	const { companies, operators, startDate, endDate, grouping } = req.query;
 
-	const companiesArray = Array.isArray(companies)
-		? companies
-		: companies
-		? [companies]
-		: [];
+	const companiesArray = JSON.parse(companies);
 	const operatorsArray = Array.isArray(operators)
 		? operators
 		: operators
