@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 
-const distPath = path.resolve(__dirname /* server */, "../" /* dist */);
+const distPath = path.resolve(__dirname, "public/imediatum-todo-app");
 app.use(express.static(distPath));
 app.use(
 	bodyParser.urlencoded({
