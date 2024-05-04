@@ -3,10 +3,18 @@ import http from "http";
 import bodyParser from "body-parser";
 import todoRouter from "./routers/todoRouter.js";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 
+const distPath = path.resolve(__dirname /* server */, "../" /* dist */);
+app.use(express.static(distPath));
 app.use(
 	bodyParser.urlencoded({
 		extended: true,
