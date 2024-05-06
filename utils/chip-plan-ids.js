@@ -143,3 +143,12 @@ export const biPlanVehicles = [
 		idvehicle: "7877",
 	},
 ];
+
+export const multi4gVehicles = [
+	{
+		idvehicle: "523",
+	},
+	{
+		idvehicle: "676",
+	},
+];

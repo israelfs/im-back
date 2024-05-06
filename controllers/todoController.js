@@ -15,12 +15,16 @@ export async function getAllLocations(req, res) {
 		: [];
 
 	let locations;
-	if (operatorsArray.includes("4G")) {
+	if (
+		operatorsArray.includes("Celular") ||
+		operatorsArray.includes("Multi4G")
+	) {
 		locations = await get4gLocations(
-			companiesArray,
+			companiesArray.filter(([, operation]) => operation === "Ideal"),
 			startDate,
 			endDate,
-			grouping
+			grouping,
+			operatorsArray.includes("Multi4G")
 		);
 	} else {
 		locations = await getLocations(

@@ -4,17 +4,16 @@ import bodyParser from "body-parser";
 import todoRouter from "./routers/todoRouter.js";
 import cors from "cors";
 import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 
-const distPath = path.resolve(__dirname, "public/imediatum-todo-app");
-app.use(express.static(distPath));
+// const distPath = path.resolve(__dirname, "public/imediatum-todo-app");
+app.use(
+	express.static(
+		"/home/israel/Documents/imediatum/im-todo-frontend/dist/imediatum-todo-app/browser/"
+	)
+);
 app.use(
 	bodyParser.urlencoded({
 		extended: true,

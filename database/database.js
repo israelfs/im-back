@@ -1,7 +1,11 @@
 import mysql from "mysql2";
 
 import dotenv from "dotenv";
-import { multiPlanVehicles, biPlanVehicles } from "../utils/chip-plan-ids.js";
+import {
+	multiPlanVehicles,
+	biPlanVehicles,
+	multi4gVehicles,
+} from "../utils/chip-plan-ids.js";
 
 dotenv.config();
 
@@ -61,16 +65,18 @@ export async function getLocations(
 					AVG(gsm_signal) AS gsm_signal,
 					AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 					COUNT(*) AS occurences
-				FROM gtfs_location_joi._0estudo_position
-				JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._0estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
-				WHERE time_rtc BETWEEN ? AND ? AND gtfs_location_joi._0estudo_position.idvehicle NOT IN (${placeholders})
+				FROM gtfs_location_joi._1estudo_position
+				JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+				WHERE 
+					gtfs_location_joi._1estudo_position.idvehicle NOT IN (${placeholders}) 
+					AND time_rtc BETWEEN ? AND ? 
 					AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
 				GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
 
 		const [rows] = await pool.query(query, [
+			...notInludedVehicleIds,
 			startDate,
 			endDate,
-			...notInludedVehicleIds,
 			...selectedCompanies.flat(),
 		]);
 		console.log(rows.length);
@@ -85,16 +91,18 @@ export async function getLocations(
 				AVG(gsm_signal) AS gsm_signal,
 				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 				COUNT(*) AS occurences
-			FROM gtfs_location_joi._0estudo_position
-			JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._0estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
-			WHERE time_rtc BETWEEN ? AND ? AND gtfs_location_joi._0estudo_position.idvehicle IN (${placeholders})
+			FROM gtfs_location_joi._1estudo_position
+			JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+			WHERE 
+				gtfs_location_joi._1estudo_position.idvehicle IN (${placeholders}) 
+				AND time_rtc BETWEEN ? AND ? 
 				AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
 			GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
 
 	const [rows] = await pool.query(query, [
+		...includedVehicleIds,
 		startDate,
 		endDate,
-		...includedVehicleIds,
 		...selectedCompanies.flat(),
 	]);
 	console.log(rows.length);
@@ -105,7 +113,8 @@ export async function get4gLocations(
 	selectedCompanies,
 	startDate,
 	endDate,
-	grouping
+	grouping,
+	isMulti4G
 ) {
 	if (selectedCompanies.length === 0 || !startDate || !endDate || !grouping) {
 		return [];
@@ -113,6 +122,27 @@ export async function get4gLocations(
 
 	const groupingOrder =
 		grouping === "low" ? "10e3" : grouping === "medium" ? "5*10e2" : "10e2";
+
+	if (isMulti4G) {
+		const multi4GIds = multi4gVehicles.map((vehicle) => vehicle.idvehicle);
+		const multi4gPlaceholders = multi4gVehicles.map(() => "?").join(",");
+		const query = `
+		SELECT
+				AVG(latitude) AS latitude,
+				AVG(longitude) AS longitude,
+				AVG(IF(gsm_signal=99,0,gsm_signal)) AS gsm_signal,
+				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
+				COUNT(*) AS occurences
+			FROM gtfs_location_joi._1estudo_position 
+			WHERE 
+				gtfs_location_joi._1estudo_position.idvehicle IN (${multi4gPlaceholders})
+				AND time_rtc BETWEEN ? AND ? 
+			GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})`;
+
+		const [rows] = await pool.query(query, [...multi4GIds, startDate, endDate]);
+		console.log("Multi4G", rows.length);
+		return rows;
+	}
 
 	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 
