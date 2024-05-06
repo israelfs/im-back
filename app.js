@@ -8,12 +8,8 @@ import path from "path";
 const app = express();
 const server = http.createServer(app);
 
-// const distPath = path.resolve(__dirname, "public/imediatum-todo-app");
-app.use(
-	express.static(
-		"/home/israel/Documents/imediatum/im-todo-frontend/dist/imediatum-todo-app/browser/"
-	)
-);
+// "/home/israel/Documents/imediatum/im-todo-frontend/dist/imediatum-todo-app/browser/"
+app.use(express.static("../public/imediatum-todo-app/browser/"));
 app.use(
 	bodyParser.urlencoded({
 		extended: true,
