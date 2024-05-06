@@ -20,7 +20,7 @@ export async function getAllLocations(req, res) {
 		operatorsArray.includes("Multi4G")
 	) {
 		locations = await get4gLocations(
-			companiesArray.filter(([, operation]) => operation === "Ideal"),
+			companiesArray,
 			startDate,
 			endDate,
 			grouping,

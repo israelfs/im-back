@@ -63,6 +63,7 @@ export async function getLocations(
 					AVG(latitude) AS latitude,
 					AVG(longitude) AS longitude,
 					AVG(gsm_signal) AS gsm_signal,
+					AVG(LEAST(1, transmitness)) AS transmitness,
 					AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 					COUNT(*) AS occurences
 				FROM gtfs_location_joi._1estudo_position
@@ -89,6 +90,7 @@ export async function getLocations(
 				AVG(latitude) AS latitude,
 				AVG(longitude) AS longitude,
 				AVG(gsm_signal) AS gsm_signal,
+				AVG(LEAST(1, transmitness)) AS transmitness,
 				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 				COUNT(*) AS occurences
 			FROM gtfs_location_joi._1estudo_position
@@ -116,6 +118,9 @@ export async function get4gLocations(
 	grouping,
 	isMulti4G
 ) {
+	selectedCompanies =
+		selectedCompanies.filter(([, operation]) => operation === "Ideal") || [];
+
 	if (selectedCompanies.length === 0 || !startDate || !endDate || !grouping) {
 		return [];
 	}
@@ -131,6 +136,7 @@ export async function get4gLocations(
 				AVG(latitude) AS latitude,
 				AVG(longitude) AS longitude,
 				AVG(IF(gsm_signal=99,0,gsm_signal)) AS gsm_signal,
+				AVG(LEAST(1, transmitness)) AS transmitness,
 				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 				COUNT(*) AS occurences
 			FROM gtfs_location_joi._1estudo_position 
@@ -151,6 +157,7 @@ export async function get4gLocations(
 				AVG(latitude) AS latitude,
 				AVG(longitude) AS longitude,
 				0 AS gsm_signal,
+				AVG(LEAST(1, transmitness)) AS transmitness,
 				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 				COUNT(*) AS occurences
 			FROM gtfs_location_joi._1estudo_position 
