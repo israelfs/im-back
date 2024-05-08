@@ -35,7 +35,30 @@ export async function getAllLocations(req, res) {
 			grouping
 		);
 	}
-	res.send(locations);
+
+	const totalOccurrences = locations.reduce(
+		(sum, location) => sum + location.occurences,
+		0
+	);
+
+	const timeThresholds = [0, 20, 60, 300, 900, 1800, 3600, 7200, 21600, 86400];
+	let accumulativeSum = 0;
+	let arrayIndex = 0;
+	let delay = [];
+
+	for (let i = 0; i < timeThresholds.length; i++) {
+		while (
+			arrayIndex < locations.length &&
+			locations[arrayIndex].transmit_delay <= timeThresholds[i]
+		) {
+			accumulativeSum += locations[arrayIndex++].occurences;
+		}
+		delay.push({
+			time: timeThresholds[i],
+			value: accumulativeSum / totalOccurrences,
+		});
+	}
+	res.send({ locations, delay });
 }
 
 export async function getAllCompanies(req, res) {
