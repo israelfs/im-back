@@ -48,17 +48,21 @@ export async function getLocations(
 	const includedVehicleIds = [
 		...(selectedOperators.includes("Multi") ? multiPlanVehicles : []),
 		...(selectedOperators.includes("Dual") ? biPlanVehicles : []),
+		...(selectedOperators.includes("Multi4G") ? multi4gVehicles : []),
 	].map((vehicle) => vehicle.idvehicle);
 
 	const notInludedVehicleIds = [
 		...(!selectedOperators.includes("Multi") ? multiPlanVehicles : []),
 		...(!selectedOperators.includes("Dual") ? biPlanVehicles : []),
+		...(!selectedOperators.includes("Multi4G") ? multi4gVehicles : []),
 	].map((vehicle) => vehicle.idvehicle);
 
 	const vehicleIds = selectedOperators.includes("Único")
 		? notInludedVehicleIds
 		: includedVehicleIds;
+
 	const placeholders = vehicleIds.map(() => "?").join(",");
+
 	const operatorCondition = selectedOperators.includes("Único")
 		? "NOT IN"
 		: "IN";
@@ -67,12 +71,13 @@ export async function getLocations(
 			SELECT
 							AVG(latitude) AS latitude,
 							AVG(longitude) AS longitude,
-							AVG(gsm_signal) AS gsm_signal,
+							AVG(IF(gsm_signal=99,0,gsm_signal)) AS gsm_signal,
 							AVG(LEAST(1, transmitness)) AS transmitness,
 							AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 							COUNT(*) AS occurences
 					FROM gtfs_location_joi._1estudo_position
-					JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+					JOIN gtfs_location_joi.vehicle2 
+					ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
 					WHERE 
 							time_transmit>=time_rtc
 							AND gtfs_location_joi._1estudo_position.idvehicle ${operatorCondition} (${placeholders}) 
@@ -95,8 +100,7 @@ export async function get4gLocations(
 	selectedCompanies,
 	startDate,
 	endDate,
-	grouping,
-	isMulti4G
+	grouping
 ) {
 	selectedCompanies =
 		selectedCompanies.filter(([, operation]) => operation === "Ideal") || [];
@@ -107,30 +111,6 @@ export async function get4gLocations(
 
 	const groupingOrder =
 		grouping === "low" ? "10e3" : grouping === "medium" ? "5*10e2" : "10e2";
-
-	if (isMulti4G) {
-		const multi4GIds = multi4gVehicles.map((vehicle) => vehicle.idvehicle);
-		const multi4gPlaceholders = multi4gVehicles.map(() => "?").join(",");
-		const query = `
-		SELECT
-				AVG(latitude) AS latitude,
-				AVG(longitude) AS longitude,
-				AVG(IF(gsm_signal=99,0,gsm_signal)) AS gsm_signal,
-				AVG(LEAST(1, transmitness)) AS transmitness,
-				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
-				COUNT(*) AS occurences
-			FROM gtfs_location_joi._1estudo_position 
-			WHERE 
-				time_transmit>=time_rtc
-				AND gtfs_location_joi._1estudo_position.idvehicle IN (${multi4gPlaceholders})
-				AND time_rtc BETWEEN ? AND ? 
-			GROUP BY FLOOR(latitude*${groupingOrder}),FLOOR(longitude*${groupingOrder})
-			ORDER BY transmit_delay ASC`;
-
-		const [rows] = await pool.query(query, [...multi4GIds, startDate, endDate]);
-		console.log("Multi4G", rows.length);
-		return rows;
-	}
 
 	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 
@@ -143,7 +123,8 @@ export async function get4gLocations(
 				AVG(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay,
 				COUNT(*) AS occurences
 			FROM gtfs_location_joi._1estudo_position 
-			JOIN gtfs_location_joi.vehicle2 ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+			JOIN gtfs_location_joi.vehicle2 
+			ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
 			WHERE 
 				gsm_signal IS NULL
 				AND time_transmit>=time_rtc
@@ -158,6 +139,31 @@ export async function get4gLocations(
 		...selectedCompanies.flat(),
 	]);
 	console.log("4G", rows.length);
+	return rows;
+}
+
+export async function getOfflineChartData(
+	selectedCompanies,
+	startDate,
+	endDate
+) {
+	if (!startDate || !endDate) {
+		return [];
+	}
+	const query = `
+		SELECT 
+			idvehicle, 
+			time_rtc, 
+			gsm_signal
+		FROM gtfs_location_joi._1estudo_position
+		WHERE 
+			TIME_TO_SEC(TIMEDIFF(time_transmit,time_rtc)) > 300  
+			AND time_rtc BETWEEN ? AND ?
+			AND time_transmit>=time_rtc
+		ORDER BY time_rtc asc;
+		`;
+
+	const [rows] = await pool.query(query, [startDate, endDate]);
 	return rows;
 }
 

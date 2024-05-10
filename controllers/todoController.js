@@ -2,7 +2,13 @@ import {
 	getLocations,
 	getCompanies,
 	get4gLocations,
+	getOfflineChartData,
 } from "../database/database.js";
+import {
+	multiPlanVehicles,
+	biPlanVehicles,
+	multi4gVehicles,
+} from "../utils/chip-plan-ids.js";
 
 export async function getAllLocations(req, res) {
 	const { companies, operators, startDate, endDate, grouping } = req.query;
@@ -14,28 +20,17 @@ export async function getAllLocations(req, res) {
 		? [operators]
 		: [];
 
-	let locations;
-	if (
-		operatorsArray.includes("Celular") ||
-		operatorsArray.includes("Multi4G")
-	) {
-		locations = await get4gLocations(
-			companiesArray,
-			startDate,
-			endDate,
-			grouping,
-			operatorsArray.includes("Multi4G")
-		);
-	} else {
-		locations = await getLocations(
-			companiesArray,
-			operatorsArray,
-			startDate,
-			endDate,
-			grouping
-		);
-	}
+	const locations = operatorsArray.includes("Celular")
+		? await get4gLocations(companiesArray, startDate, endDate, grouping)
+		: await getLocations(
+				companiesArray,
+				operatorsArray,
+				startDate,
+				endDate,
+				grouping
+		  );
 
+	// DELAY CHART DATA
 	const totalOccurrences = locations.reduce(
 		(sum, location) => sum + location.occurences,
 		0
@@ -58,7 +53,68 @@ export async function getAllLocations(req, res) {
 			value: accumulativeSum / totalOccurrences,
 		});
 	}
-	res.send({ locations, delay });
+
+	// OFFLINE CHART DATA
+	const offlineData = await getOfflineChartData(
+		companiesArray,
+		startDate,
+		endDate
+	);
+
+	const seriesNames = ["Mono", "Multi", "Dual", "Multi4G", "Celular"];
+	const seriesData = seriesNames.map(() => []);
+
+	const currentDate = new Date(startDate);
+	const finalDate = new Date(endDate);
+
+	let currentIdx = 0;
+
+	while (currentDate <= finalDate) {
+		const counts = new Array(seriesNames.length).fill(0);
+
+		while (
+			currentIdx < offlineData.length &&
+			new Date(offlineData[currentIdx].time_rtc) <= currentDate &&
+			new Date(offlineData[currentIdx].time_rtc) <= finalDate
+		) {
+			const item = offlineData[currentIdx++];
+
+			let seriesIndex = 0;
+			if (item.gsm_signal === null) {
+				seriesIndex = 4;
+			} else if (
+				multiPlanVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
+			) {
+				seriesIndex = 1;
+			} else if (
+				biPlanVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
+			) {
+				seriesIndex = 2;
+			} else if (
+				multi4gVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
+			) {
+				seriesIndex = 3;
+			}
+
+			counts[seriesIndex]++;
+		}
+
+		seriesNames.forEach((_, i) => {
+			seriesData[i].push({
+				name: new Date(currentDate),
+				value: counts[i],
+			});
+		});
+
+		currentDate.setMinutes(currentDate.getMinutes() + 30); // increase 30 minutes
+	}
+
+	const offline = seriesNames.map((name, i) => ({
+		name,
+		series: seriesData[i],
+	}));
+
+	res.send({ locations, delay, offline });
 }
 
 export async function getAllCompanies(req, res) {
