@@ -64,49 +64,61 @@ export async function getAllLocations(req, res) {
 	const seriesNames = ["Mono", "Multi", "Dual", "Multi4G", "Celular"];
 	const seriesData = seriesNames.map(() => []);
 
-	const currentDate = new Date(startDate);
 	const finalDate = new Date(endDate);
 
 	let currentIdx = 0;
 
-	while (currentDate <= finalDate) {
-		const counts = new Array(seriesNames.length).fill(0);
+	for (
+		const currentDate = new Date(startDate);
+		currentDate <= finalDate;
+		currentDate.setMinutes(currentDate.getMinutes() + 5)
+	) {
+		const idsMono = new Set();
+		const idsMulti = new Set();
+		const idsDual = new Set();
+		const idsMulti4G = new Set();
+		const idsCelular = new Set();
 
 		while (
 			currentIdx < offlineData.length &&
-			new Date(offlineData[currentIdx].time_rtc) <= currentDate &&
-			new Date(offlineData[currentIdx].time_rtc) <= finalDate
+			new Date(offlineData[currentIdx].time_rtc) <= currentDate
 		) {
 			const item = offlineData[currentIdx++];
 
-			let seriesIndex = 0;
 			if (item.gsm_signal === null) {
-				seriesIndex = 4;
+				idsCelular.add(item.idvehicle);
 			} else if (
 				multiPlanVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
 			) {
-				seriesIndex = 1;
+				idsMulti.add(item.idvehicle);
 			} else if (
 				biPlanVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
 			) {
-				seriesIndex = 2;
+				idsDual.add(item.idvehicle);
 			} else if (
 				multi4gVehicles.some((v) => v.idvehicle === item.idvehicle.toString())
 			) {
-				seriesIndex = 3;
+				idsMulti4G.add(item.idvehicle);
+			} else {
+				idsMono.add(item.idvehicle);
 			}
-
-			counts[seriesIndex]++;
 		}
 
 		seriesNames.forEach((_, i) => {
 			seriesData[i].push({
 				name: new Date(currentDate),
-				value: counts[i],
+				value:
+					i === 0
+						? idsMono.size
+						: i === 1
+						? idsMulti.size
+						: i === 2
+						? idsDual.size
+						: i === 3
+						? idsMulti4G.size
+						: idsCelular.size,
 			});
 		});
-
-		currentDate.setMinutes(currentDate.getMinutes() + 5); // increase 30 minutes
 	}
 
 	const offline = seriesNames.map((name, i) => ({

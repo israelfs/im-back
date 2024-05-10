@@ -147,23 +147,31 @@ export async function getOfflineChartData(
 	startDate,
 	endDate
 ) {
-	if (!startDate || !endDate) {
+	if (!startDate || !endDate || selectedCompanies.length === 0) {
 		return [];
 	}
+	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 	const query = `
 		SELECT 
-			idvehicle, 
+			gtfs_location_joi._1estudo_position.idvehicle, 
 			time_rtc, 
 			gsm_signal
 		FROM gtfs_location_joi._1estudo_position
+		JOIN gtfs_location_joi.vehicle2 
+		ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
 		WHERE 
 			TIME_TO_SEC(TIMEDIFF(time_transmit,time_rtc)) > 300  
 			AND time_rtc BETWEEN ? AND ?
 			AND time_transmit>=time_rtc
+			AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
 		ORDER BY time_rtc asc;
 		`;
 
-	const [rows] = await pool.query(query, [startDate, endDate]);
+	const [rows] = await pool.query(query, [
+		startDate,
+		endDate,
+		...selectedCompanies.flat(),
+	]);
 	return rows;
 }
 
