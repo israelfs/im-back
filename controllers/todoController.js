@@ -106,7 +106,7 @@ export async function getAllLocations(req, res) {
 			});
 		});
 
-		currentDate.setMinutes(currentDate.getMinutes() + 30); // increase 30 minutes
+		currentDate.setMinutes(currentDate.getMinutes() + 5); // increase 30 minutes
 	}
 
 	const offline = seriesNames.map((name, i) => ({
