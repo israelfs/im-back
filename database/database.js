@@ -28,7 +28,8 @@ export async function getLocations(
 	selectedOperators,
 	startDate,
 	endDate,
-	grouping
+	grouping,
+	forDelay = false
 ) {
 	if (
 		selectedCompanies.length === 0 ||
@@ -67,7 +68,20 @@ export async function getLocations(
 		? "NOT IN"
 		: "IN";
 
-	const query = `
+	const query = forDelay
+		? `
+			SELECT
+				TIME_TO_SEC(TIMEDIFF(time_transmit,time_rtc)) AS transmit_delay
+			FROM gtfs_location_joi._1estudo_position
+			JOIN gtfs_location_joi.vehicle2 
+			ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+			WHERE 
+					time_transmit>=time_rtc
+					AND gtfs_location_joi._1estudo_position.idvehicle ${operatorCondition} (${placeholders}) 
+					AND time_rtc BETWEEN ? AND ? 
+					AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
+			ORDER BY transmit_delay ASC`
+		: `
 			SELECT
 							AVG(latitude) AS latitude,
 							AVG(longitude) AS longitude,
@@ -100,7 +114,8 @@ export async function get4gLocations(
 	selectedCompanies,
 	startDate,
 	endDate,
-	grouping
+	grouping,
+	forDelay = false
 ) {
 	selectedCompanies =
 		selectedCompanies.filter(([, operation]) => operation === "Ideal") || [];
@@ -114,7 +129,20 @@ export async function get4gLocations(
 
 	const companiesPlaceholders = selectedCompanies.map(() => "(?, ?)").join(",");
 
-	const query = `
+	const query = forDelay
+		? `
+		SELECT
+			TIME_TO_SEC(TIMEDIFF(time_transmit,time_rtc))  AS transmit_delay
+		FROM gtfs_location_joi._1estudo_position
+		JOIN gtfs_location_joi.vehicle2 
+		ON gtfs_location_joi._1estudo_position.idvehicle = gtfs_location_joi.vehicle2.idvehicle
+		WHERE
+				gsm_signal IS NULL 
+				AND time_transmit>=time_rtc
+				AND time_rtc BETWEEN ? AND ? 
+				AND (gtfs_location_joi.vehicle2.empresa, gtfs_location_joi.vehicle2.operacao) IN (${companiesPlaceholders})
+		ORDER BY transmit_delay ASC`
+		: `
 		SELECT
 				AVG(latitude) AS latitude,
 				AVG(longitude) AS longitude,

@@ -31,26 +31,34 @@ export async function getAllLocations(req, res) {
 		  );
 
 	// DELAY CHART DATA
-	const totalOccurrences = locations.reduce(
-		(sum, location) => sum + location.occurences,
-		0
-	);
+
+	const delayChartData = operatorsArray.includes("Celular")
+		? await get4gLocations(companiesArray, startDate, endDate, grouping, true)
+		: await getLocations(
+				companiesArray,
+				operatorsArray,
+				startDate,
+				endDate,
+				grouping,
+				true
+		  );
+
+	const totalOccurrences = delayChartData.length;
 
 	const timeThresholds = [0, 20, 60, 300, 900, 1800, 3600, 7200, 21600, 86400];
-	let accumulativeSum = 0;
 	let arrayIndex = 0;
 	let delay = [];
 
 	for (let i = 0; i < timeThresholds.length; i++) {
 		while (
-			arrayIndex < locations.length &&
-			locations[arrayIndex].transmit_delay <= timeThresholds[i]
+			arrayIndex < totalOccurrences &&
+			delayChartData[arrayIndex].transmit_delay <= timeThresholds[i]
 		) {
-			accumulativeSum += locations[arrayIndex++].occurences;
+			arrayIndex++;
 		}
 		delay.push({
 			time: timeThresholds[i],
-			value: accumulativeSum / totalOccurrences,
+			value: arrayIndex / totalOccurrences,
 		});
 	}
 
